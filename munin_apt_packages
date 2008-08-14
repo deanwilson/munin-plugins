@@ -1,0 +1,65 @@
+#!/usr/bin/perl -w
+use strict;
+
+# this was a learning experiement - use the officlal apt plugin instead
+
+#%# family=contrib
+#%# capabilities=autoconf
+
+my $mode = shift || '';
+
+if ($mode eq 'config') {
+  print <<END;
+graph_title Pending Upgrades
+graph_args --base 1000 -l 0
+graph_vlabel Num Packages
+graph_scale no
+graph_category system
+graph_info This graph shows the number of packages pending an upgrade and/or held back.
+
+upgrade.label Pending Upgrades
+upgrade.warning 5
+upgrade.critical 10
+upgrade.info Packages to be upgraded
+
+held.label Held Packages
+held.warning 2
+held.critical 6
+held.info Packages held back
+
+END
+  exit 0;
+}
+
+# check if we're debian and say yes. Not perfect but ok for the first pass
+
+if ( $mode eq 'autoconf' ) {
+  if ( -x '/usr/bin/apt-get' ) {
+    print "yes\n";
+    exit 0;
+  }
+  print "no (/usr/bin/apt-get not valid)\n";
+  exit 1;
+}
+
+###############################################
+
+
+my $apt = 'sudo apt-get upgrade -s';
+
+open( my $apt_fh, "$apt |" )
+  || die "Failed to run [$apt]\n";
+
+my ($upgraded, $held);
+while (<$apt_fh>) {
+  if (/^(\d+)\s+upgraded, .+ (\d+) not upgraded.$/) {
+    ($upgraded, $held) = ($1, $2);
+    last;
+  }
+}
+
+
+print "held.value $held\n";
+print "upgrade.value $upgraded\n";
+
+###############################################

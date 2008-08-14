@@ -1,0 +1,56 @@
+#!/usr/bin/perl -w
+use strict;
+
+#%# family=contrib
+#%# capabilities=autoconf
+
+my $mode = shift || '';
+
+if ($mode eq 'config') {
+  print <<END;
+graph_title Total Packages Installed
+graph_args --base 1000 -l 0
+graph_vlabel Num Packages
+graph_scale no
+graph_category system
+graph_info This graph shows the number of packages installed
+
+packages.label Num. Packages
+packages.warning 500
+packages.critical 750
+packages.info Number of Packages Installed
+
+END
+  exit 0;
+}
+
+# check if we've got dpkg and say yes. Not perfect but ok for the
+# first pass
+
+if ( $mode eq 'autoconf' ) {
+  if ( -x '/usr/bin/dpkg' ) {
+    print "yes\n";
+    exit 0;
+  }
+  print "no (/usr/bin/dpkg not valid)\n";
+  exit 1;
+}
+
+###############################################
+
+
+my $cmd = 'dpkg -l'; # | grep ^ii | wc';
+
+open( my $dpkg_fh, "$cmd |" )
+  || die "Failed to run [$cmd]\n";
+
+my $total;
+while (<$dpkg_fh>) {
+  next unless /^ii/;
+  $total++;
+}
+
+
+print "packages.value $total\n";
+
+###############################################
