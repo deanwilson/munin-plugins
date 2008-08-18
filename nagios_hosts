@@ -1,0 +1,61 @@
+#!/usr/bin/perl -w
+use strict;
+
+#%# family=contrib
+#%# capabilities=autoconf
+
+my $mode = shift || '';
+
+if ($mode eq 'config') {
+  print <<END;
+graph_title Nagios Host Checks
+graph_args --base 1000 -l 0
+graph_vlabel Nagios Hosts
+graph_scale no
+graph_category system
+graph_info Shows the hosts nagios monitors and their states
+
+up.label Hosts UP
+up.info  Hosts in the UP state
+
+down.label Hosts Down
+down.info  Hosts in the DOWN state
+
+unreachable.label Hosts Unreachable
+unreachable.info  Hosts in the Unreachable state
+
+END
+  exit 0;
+}
+
+###############################################
+# check if we've got nagios2stats and say yes.
+
+my $nagiostats =  '/usr/sbin/nagios2stats';
+
+if ( $mode eq 'autoconf' ) {
+  if ( -x $nagiostats ) {
+    print "yes\n";
+    exit 0;
+  }
+  print "no ($nagiostats is not valid)\n";
+  exit 1;
+}
+
+###############################################
+
+open( my $stats_fh, "$nagiostats |" )
+  || die "Failed to run [$nagiostats]\n";
+
+my %stats;
+while (<$stats_fh>) {
+  next unless m!Hosts Up/Down/Unreach:\s+(\d+) / (\d+) / (\d+)!;
+  %stats = ( up => $1, down => $2, unreachable => $3 );
+  last;
+}
+
+###############################################
+
+for my $stat (sort keys %stats) {
+  print "$stat.value $stats{$stat}\n";
+}

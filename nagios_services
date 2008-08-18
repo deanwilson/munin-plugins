@@ -1,0 +1,64 @@
+#!/usr/bin/perl -w
+use strict;
+
+#%# family=contrib
+#%# capabilities=autoconf
+
+my $mode = shift || '';
+
+if ($mode eq 'config') {
+  print <<END;
+graph_title Nagios Service Checks
+graph_args --base 1000 -l 0
+graph_vlabel Nagios Services
+graph_scale no
+graph_category system
+graph_info Shows the services nagios monitors and their states
+
+ok.label Services OK
+ok.info Services in the OK state
+
+warn.label Services Warning
+warn.info Services in the WARN state
+
+unknown.label Services Unknown
+unknown.info Services in the UNKNOWN state
+
+crit.label Services Critical
+crit.info Services in the CRITICAL state
+
+END
+  exit 0;
+}
+
+###############################################
+# check if we've got nagios2stats and say yes.
+
+my $nagiostats =  '/usr/sbin/nagios2stats';
+
+if ( $mode eq 'autoconf' ) {
+  if ( -x $nagiostats ) {
+    print "yes\n";
+    exit 0;
+  }
+  print "no ($nagiostats is not valid)\n";
+  exit 1;
+}
+
+###############################################
+
+open( my $stats_fh, "$nagiostats |" )
+  || die "Failed to run [$nagiostats]\n";
+
+my %stats;
+while (<$stats_fh>) {
+  next unless m!Services Ok/Warn/Unk/Crit:\s+(\d+) / (\d+) / (\d+) / (\d+)!;
+  %stats = ( ok => $1, warn => $2, unknown => $3, crit => $4 );
+  last;
+}
+
+###############################################
+
+for my $stat (sort keys %stats) {
+  print "$stat.value $stats{$stat}\n";
+}
