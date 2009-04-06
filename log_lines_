@@ -1,0 +1,27 @@
+#!/usr/bin/perl -w
+use strict;
+use warnings;
+
+my $mode = shift || '';
+
+$0 =~ m{log_lines_(.*)} or die "cannot determine which logfile to monitor\n";
+my $logfile = $1;
+$logfile =~ s{__}{/}g;
+
+if ($mode eq 'config') {
+print <<END;
+graph_title Entries in $logfile
+graph_args --base 1000 -l 0
+graph_vlabel l/s
+graph_scale no
+graph_category system
+graph_info This graph shows the number of lines added
+
+lines.label lines
+lines.type COUNTER
+END
+    exit 0;
+}
+
+print "lines.value ";
+system "wc -l $logfile | cut -d' ' -f1";
