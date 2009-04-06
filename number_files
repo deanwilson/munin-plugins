@@ -1,0 +1,30 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+my $mode = shift || '';
+
+$0 =~ m{number_files_(.*)} or die "cannot determine which directory to monitor\n";
+my $basedir = $1;
+$basedir =~ s{__}{/}g;
+
+if ($mode eq 'config') {
+print <<END;
+graph_title Files under $basedir
+graph_args --base 1000 -l 0
+graph_vlabel filecount
+graph_scale no
+graph_category system
+graph_info This graph shows the number of files under $basedir
+
+files.label files
+files.type GAUGE
+
+END
+    exit 0;
+}
+
+# this doesn't deal with subdirs it can't read, use my check_number_files
+# nagios plugin to get that coverage
+print "files.value ";
+system "find $basedir -type f 2>/dev/null | wc -l";
