@@ -1,0 +1,36 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+my $mode = shift || '';
+
+$0 =~ m{rss_vsz_memsize_(.*)} or die "cannot determine which process name to monitor\n";
+my $processname = $1;
+$processname =~ s{__}{/}g;
+
+if ($mode eq 'config') {
+  print <<END;
+graph_title $processname RSS and VSZ usage
+graph_args --base 1000 -l 0
+graph_vlabel Size
+graph_scale no
+graph_category system
+graph_info Shows RSS and VSZ used by $processname
+
+rss.label RSS
+rss.info  RSS Usage
+
+vsz.label VSZ
+vsz.info  VSZ Usage
+
+END
+  exit 0;
+}
+
+# ugly but works - for some cases. This is naive in that it only works on the first match.
+# and might be better off inlined in to perl.
+$processname =~ s/(.)/[$1]/; # so we don't match ourselves - so puppetmasterd becomes [p]uppetmasterd
+my ($rss, $vsz) = split( /\s+/, `ps -eo fname,rss,vsz,command | awk '/$processname/ { print \$2, \$3 }'`);
+
+print "rss.value $rss\n";
+print "vsz.value $vsz\n";
